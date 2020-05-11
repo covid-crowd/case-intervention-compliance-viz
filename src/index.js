@@ -4,6 +4,11 @@ import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 
+Math.zip = function(a, b) {
+  a = a.slice(0, Math.min(a.length, b.length))
+  return a.map((v, i) => [v, b[i]]);
+}
+
 ReactDOM.render(
   <React.StrictMode>
     <App />

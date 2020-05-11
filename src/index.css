@@ -11,3 +11,68 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.leaflet-container { height: 100vh; }
+
+.map-menu-container {
+  position: absolute;
+  top: 25px;
+  right: 25px;
+  z-index: 1000;
+  text-align: left;
+
+}
+
+.map-menu-container .arrow {
+  display: inline-block;
+  border-left: 1px solid #ccc;
+  padding: 15px 15px 15px 15px;
+  position: absolute;
+  bottom: 0; 
+  right: 0;
+}
+
+.map-display {
+  border: 1px solid #ccc;
+  position: relative;
+  background: white;
+/*  width: 300px;*/
+  padding: 15px;
+  cursor: pointer;
+}
+
+.map-select {
+  border: 1px solid #ccc;
+  background: white;
+  min-width: 300px;
+  padding: 10px;
+  visibility: hidden;
+  margin-top: 1px;
+}
+
+.map-select.visible {
+  visibility: inherit;
+}
+
+.map-option {
+  margin: 10px 5px;
+  cursor: pointer;
+}
+
+.map-option-header {
+  margin: 5px 5px 15px 5px;
+  font-weight: bold;
+}
+
+.legend-container {
+  border: 1px solid #ccc;
+  padding: 10px 15px;
+  background: white;
+}
+
+.legend, .date-slider {
+  position: relative;
+  padding-top: 5px;
+  height: 20px;
+  font-size: 10px;
+}
