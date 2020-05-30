@@ -18,7 +18,7 @@ code {
   position: absolute;
   top: 25px;
   right: 25px;
-  z-index: 1000;
+  z-index: 1001;
   text-align: left;
 
 }
@@ -75,4 +75,12 @@ code {
   padding-top: 5px;
   height: 20px;
   font-size: 10px;
+}
+
+.plot-div {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+  width: 500px;
 }
