@@ -111,7 +111,7 @@ const DATALAYER_LEGENDS = new window.Map([
   ['mobility.sip', {min:"0%", max:"100%", steps: 4, minR: 100, maxR: 250}],
   ['mobility.l1m', {min:"0%", max:"100%", steps: 4, minR: 100, maxR: 250}],
   ['mobility.l10m', {min:"0%", max:"100%", steps: 4, minR: 100, maxR: 250}],
-  ['mobility.observed_sip_date', {min: "March 1", max: "May 1", steps:5, minR: 100, maxR: 250}]
+  ['mobility.observed_sip_date', {min: "March 1", max: "April 15", steps: 45, minR: 0, maxR: 150}]
 ]);
 
 // const DATALAYER_CONTROLS = new window.Map([
@@ -119,13 +119,23 @@ const DATALAYER_LEGENDS = new window.Map([
 // ])
 
 class VisMapLegend extends React.PureComponent {
+  colorAt(i, steps, minR, maxR) {
+    if (steps < 10) {
+      return `rgb(${minR+(maxR-minR)*i/steps}, 200, 150)`
+    } else {
+      let v = `hsl(${Math.round(minR+(maxR-minR)*i/steps)}, 70%, 70%)`
+      console.log("hsl!", v);
+      return v;
+    }
+  }
+  
   render() {
     let f2s = f => typeof(f) === 'function' ? f(this.props.countyData) : f;
     let {min, max, steps, minR, maxR, width} = this.props;
     let height = 10;
     let out = [];
     for (var i = 0; i < f2s(steps); i++) {
-      out.push(<div className="segment" key={i} style={{background: `rgb(${minR+(maxR-minR)*i/steps}, 200, 150)`, display: "inline-block", width: width/steps, height: height}}> </div>)
+      out.push(<div className="segment" key={i} style={{background: this.colorAt(i, steps, minR, maxR), display: "inline-block", width: width/steps, height: height}}> </div>)
     }
     return <div className="legend" style={{width: width}}>
         {out}
@@ -185,7 +195,7 @@ class VisMapMenu extends React.PureComponent {
 class VisMap extends React.PureComponent {
   state = {
     countyData: {},
-    dataLayer: "cases.growth",
+    dataLayer: "mobility.observed_sip_date",
     dayNumber: 0,
     selectedRegions: new Set(["Alameda, California", "Santa Clara, California"])
   }
@@ -362,6 +372,7 @@ class VisMap extends React.PureComponent {
     let {minR, maxR, steps} = DATALAYER_LEGENDS.get(this.state.dataLayer);
 
     let r = minR;
+    let fillColor;
     
     let avg = l => {
       l = l.filter(v => v !== undefined);
@@ -396,14 +407,30 @@ class VisMap extends React.PureComponent {
       }
     } else if (ns === "mobility") {
       if (k === 'observed_sip_date') {
-        let maxIndex = data.cmi.reduce((iMax, x, i, arr) => i > 386 && x > arr[iMax] ? i : iMax, 0);
-        let minIndex = data.cmi.reduce((iMax, x, i, arr) => x !== null && i > 386+39 && x < arr[iMax] ? i : iMax, 0);
+        let cmi = data.cmi.slice(386); // start at 1-22-2020
+        let averageThroughMarch1 = avg(cmi.slice(0, 29+9));
+        let sevenDayAverage = cmi.slice(3,cmi.length-4).map((_, i) => avg(cmi.slice(i,i+7)));
+        let lowest7DayAverage = sevenDayAverage.reduce((imin, x, i, arr) => x < arr[imin] ? i : imin, 0);
+        // let mediansByDay = Array(7).fill(0).map((_, d) => {
+        //   let values = Array(6).fill(0).map((_, weekNo) => data.cmi[391+d+weekNo*7]);
+        //   values.sort();
+        //   return (values[2] + values[3])/2 || 0;
+        // });
+        // let lowest7DayMedian = Array(steps-7).fill(0).map(
+        //   (_, i, arr) =>
+        //     i > 0 ?
+        //       arr[i-1]-data.cmi[391+i]/7+data.cmi[391+7*i]/7 :
+        //       data.cmi.slice(391-7,391).reduce((p,c) => p+c/7, 0)
+        // ).sort()[0];
+        // let firstCheck = 391+6+6*7;
+        // let maxIndex = data.cmi.reduce((iMax, x, i, arr) => i > 386 && x > arr[iMax] ? i : iMax, 0);
+        // let minIndex = data.cmi.reduce((iMax, x, i, arr) => x !== null && i > 386+39 && x < arr[iMax] ? i : iMax, 0);
         // console.log("max,min", maxIndex, minIndex, "->", data.cmi[maxIndex], data.cmi[minIndex]);
-        let halfwayThreshold = (data.cmi[maxIndex] + data.cmi[minIndex]) / 2;
-        let halfwayIndex = data.cmi.findIndex((x, i) => i > maxIndex && x < halfwayThreshold);
-        let daysSinceStart = halfwayIndex - 386 - 39; // since March 1 now
-        // console.log(name, state, "observed SIP on day", daysSinceStart, "as", data.cmi[maxIndex], "+", data.cmi[minIndex], "/ 2 =", halfwayThreshold, "- found", data.cmi[halfwayIndex], "on day", halfwayIndex);
-        r += daysSinceStart/61 * (maxR-minR)
+        // let halfwayIndex = data.cmi.findIndex((x, i) => i > firstCheck && x < (mediansByDay[(i-391)%7] + lowest7DayMedian) * (1-.3));
+        let shiftIndex = sevenDayAverage.findIndex((x, i) => i > 29+9-3 && x < (averageThroughMarch1 + sevenDayAverage[lowest7DayAverage]) * 0.5)
+        let daysSinceStart = shiftIndex - (29+9); // since March 1 now
+        console.log(name, state, "observed SIP on day", daysSinceStart, "as", averageThroughMarch1, "->", sevenDayAverage[lowest7DayAverage], "(@", lowest7DayAverage, "):", shiftIndex, "=", daysSinceStart);
+        fillColor = `hsl(${minR+(maxR-minR)*daysSinceStart/steps}, 70%, 70%)`;
       } else {
         let i = Number(this.state.dayNumber) + 386 // difference between 1-1-2019 and 1-22-2020, the start days of our data sets
         let v = data[k][i];
@@ -425,7 +452,7 @@ class VisMap extends React.PureComponent {
       weight: isSelected ? 3 : 1,
       fillOpacity: r < 0 ? 0 : 1,
       opacity: isSelected ? 1 : 0.25,
-      fillColor: `rgb(${r}, 200, 150)`
+      fillColor: fillColor || `rgb(${r}, 200, 150)`
     };
   }
   
@@ -482,8 +509,8 @@ class VisMap extends React.PureComponent {
         console.log("drawing, for", region, values);
         dataEntries.push({
           type: 'scatter',
-          x: dates,
-          y: values,
+          x: dates.slice(0, dates.length-7),
+          y: values.slice(3, values.length-4).map((v, i) => values.slice(i, i+7).reduce((p,c)=>p+c/7,0)),
           name: region          
         })
         // plots.push(<Plot
